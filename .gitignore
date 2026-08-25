@@ -1,0 +1,8 @@
+build/
+vendor/lib-sim/
+vendor/lib-sim-x64/
+vendor/lib-device/
+vendor/include/libsa3.h
+.DS_Store
+*.xcuserdatad/
+xcuserdata/

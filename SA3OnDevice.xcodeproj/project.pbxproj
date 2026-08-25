@@ -1,0 +1,302 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		SA3000000000000000000016 /* SA3OnDeviceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000011 /* SA3OnDeviceApp.swift */; };
+		SA3000000000000000000017 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000012 /* ContentView.swift */; };
+		SA3000000000000000000018 /* SA3Engine.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000013 /* SA3Engine.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		SA3000000000000000000010 /* SA3OnDevice.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SA3OnDevice.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		SA3000000000000000000011 /* SA3OnDeviceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SA3OnDeviceApp.swift; sourceTree = "<group>"; };
+		SA3000000000000000000012 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		SA3000000000000000000013 /* SA3Engine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SA3Engine.swift; sourceTree = "<group>"; };
+		SA3000000000000000000014 /* SA3Bridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SA3Bridge.h; sourceTree = "<group>"; };
+		SA3000000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		SA300000000000000000000E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		SA3000000000000000000003 = {
+			isa = PBXGroup;
+			children = (
+				SA3000000000000000000004 /* SA3OnDevice */,
+				SA3000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		SA3000000000000000000004 /* SA3OnDevice */ = {
+			isa = PBXGroup;
+			children = (
+				SA3000000000000000000011 /* SA3OnDeviceApp.swift */,
+				SA3000000000000000000012 /* ContentView.swift */,
+				SA3000000000000000000013 /* SA3Engine.swift */,
+				SA3000000000000000000014 /* SA3Bridge.h */,
+				SA3000000000000000000015 /* Info.plist */,
+			);
+			path = SA3OnDevice;
+			sourceTree = "<group>";
+		};
+		SA3000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				SA3000000000000000000010 /* SA3OnDevice.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		SA3000000000000000000002 /* SA3OnDevice */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = SA3000000000000000000008 /* Build configuration list for PBXNativeTarget "SA3OnDevice" */;
+			buildPhases = (
+				SA300000000000000000000D /* Sources */,
+				SA300000000000000000000E /* Frameworks */,
+				SA300000000000000000000F /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			name = SA3OnDevice;
+			productName = SA3OnDevice;
+			productReference = SA3000000000000000000010 /* SA3OnDevice.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		SA3000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1620;
+				LastUpgradeCheck = 1620;
+				TargetAttributes = {
+					SA3000000000000000000002 = { CreatedOnToolsVersion = 16.2; };
+				};
+			};
+			buildConfigurationList = SA3000000000000000000007 /* Build configuration list for PBXProject "SA3OnDevice" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base);
+			mainGroup = SA3000000000000000000003;
+			productRefGroup = SA3000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				SA3000000000000000000002 /* SA3OnDevice */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		SA300000000000000000000F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		SA300000000000000000000D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SA3000000000000000000018 /* SA3Engine.swift in Sources */,
+				SA3000000000000000000017 /* ContentView.swift in Sources */,
+				SA3000000000000000000016 /* SA3OnDeviceApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		SA3000000000000000000009 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGNING_ALLOWED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SA3OnDevice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
+				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
+				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ONLY_ACTIVE_ARCH = YES;
+				GCC_OPTIMIZATION_LEVEL = "0";
+				SDKROOT = iphoneos;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+			};
+			name = Debug;
+		};
+		SA300000000000000000000A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGNING_ALLOWED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SA3OnDevice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
+				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
+				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ONLY_ACTIVE_ARCH = NO;
+				GCC_OPTIMIZATION_LEVEL = "s";
+				SDKROOT = iphoneos;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+			};
+			name = Release;
+		};
+		SA300000000000000000000B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGNING_ALLOWED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SA3OnDevice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
+				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
+				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ONLY_ACTIVE_ARCH = YES;
+				GCC_OPTIMIZATION_LEVEL = "0";
+				SDKROOT = iphoneos;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+			};
+			name = Debug;
+		};
+		SA300000000000000000000C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGNING_ALLOWED = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SA3OnDevice/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
+				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
+				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				ONLY_ACTIVE_ARCH = NO;
+				GCC_OPTIMIZATION_LEVEL = "s";
+				SDKROOT = iphoneos;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				ENABLE_DEBUG_DYLIB = NO;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		SA3000000000000000000007 /* Build configuration list for PBXProject "SA3OnDevice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SA3000000000000000000009 /* Debug */,
+				SA300000000000000000000A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		SA3000000000000000000008 /* Build configuration list for PBXNativeTarget "SA3OnDevice" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				SA300000000000000000000B /* Debug */,
+				SA300000000000000000000C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = SA3000000000000000000001 /* Project object */;
+}
