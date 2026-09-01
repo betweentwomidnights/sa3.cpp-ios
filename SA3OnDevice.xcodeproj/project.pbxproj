@@ -1,7 +1,8 @@
 // !$*UTF8*$!
 {
 	archiveVersion = 1;
-	classes = {};
+	classes = {
+	};
 	objectVersion = 56;
 	objects = {
 
@@ -24,7 +25,8 @@
 		SA300000000000000000000E /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -69,8 +71,10 @@
 				SA300000000000000000000E /* Frameworks */,
 				SA300000000000000000000F /* Resources */,
 			);
-			buildRules = ();
-			dependencies = ();
+			buildRules = (
+			);
+			dependencies = (
+			);
 			name = SA3OnDevice;
 			productName = SA3OnDevice;
 			productReference = SA3000000000000000000010 /* SA3OnDevice.app */;
@@ -86,14 +90,19 @@
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
-					SA3000000000000000000002 = { CreatedOnToolsVersion = 16.2; };
+					SA3000000000000000000002 = {
+						CreatedOnToolsVersion = 16.2;
+					};
 				};
 			};
 			buildConfigurationList = SA3000000000000000000007 /* Build configuration list for PBXProject "SA3OnDevice" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
-			knownRegions = (en, Base);
+			knownRegions = (
+				en,
+				Base,
+			);
 			mainGroup = SA3000000000000000000003;
 			productRefGroup = SA3000000000000000000005 /* Products */;
 			projectDirPath = "";
@@ -108,7 +117,8 @@
 		SA300000000000000000000F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = ();
+			files = (
+			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
@@ -133,34 +143,51 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CODE_SIGNING_ALLOWED = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/vendor/include";
 				INFOPLIST_FILE = SA3OnDevice/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
-				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				MARKETING_VERSION = 0.1;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lsa3",
+					"-lggml",
+					"-lggml-cpu",
+					"-lggml-metal",
+					"-lggml-blas",
+					"-lggml-base",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					Metal,
+					"-framework",
+					MetalKit,
+					"-framework",
+					Foundation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OBJC_BRIDGING_HEADER = SA3OnDevice/SA3Bridge.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				ONLY_ACTIVE_ARCH = YES;
-				GCC_OPTIMIZATION_LEVEL = "0";
-				SDKROOT = iphoneos;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				ENABLE_DEBUG_DYLIB = NO;
 			};
 			name = Debug;
 		};
@@ -170,34 +197,51 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CODE_SIGNING_ALLOWED = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/vendor/include";
 				INFOPLIST_FILE = SA3OnDevice/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
-				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				MARKETING_VERSION = 0.1;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = (
+					"-lsa3",
+					"-lggml",
+					"-lggml-cpu",
+					"-lggml-metal",
+					"-lggml-blas",
+					"-lggml-base",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					Metal,
+					"-framework",
+					MetalKit,
+					"-framework",
+					Foundation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OBJC_BRIDGING_HEADER = SA3OnDevice/SA3Bridge.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				ONLY_ACTIVE_ARCH = NO;
-				GCC_OPTIMIZATION_LEVEL = "s";
-				SDKROOT = iphoneos;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				ENABLE_DEBUG_DYLIB = NO;
 			};
 			name = Release;
 		};
@@ -207,34 +251,53 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CODE_SIGNING_ALLOWED = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_ENTITLEMENTS = SA3OnDevice/SA3OnDevice.entitlements;
+				DEVELOPMENT_TEAM = P8L4LGS728;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
 				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/vendor/include";
 				INFOPLIST_FILE = SA3OnDevice/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
-				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				MARKETING_VERSION = 0.1;
+				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LDFLAGS = (
+					"-lsa3",
+					"-lggml",
+					"-lggml-cpu",
+					"-lggml-metal",
+					"-lggml-blas",
+					"-lggml-base",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					Metal,
+					"-framework",
+					MetalKit,
+					"-framework",
+					Foundation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OBJC_BRIDGING_HEADER = SA3OnDevice/SA3Bridge.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				ONLY_ACTIVE_ARCH = YES;
-				GCC_OPTIMIZATION_LEVEL = "0";
-				SDKROOT = iphoneos;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				ENABLE_DEBUG_DYLIB = NO;
 			};
 			name = Debug;
 		};
@@ -244,34 +307,53 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_MODULES = YES;
 				CLANG_ENABLE_OBJC_ARC = YES;
+				CODE_SIGNING_ALLOWED = YES;
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
 				CODE_SIGN_STYLE = Automatic;
-				CODE_SIGNING_ALLOWED = NO;
 				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_ENTITLEMENTS = SA3OnDevice/SA3OnDevice.entitlements;
+				DEVELOPMENT_TEAM = P8L4LGS728;
+				ENABLE_DEBUG_DYLIB = NO;
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_OPTIMIZATION_LEVEL = s;
 				GENERATE_INFOPLIST_FILE = NO;
+				HEADER_SEARCH_PATHS = "$(SRCROOT)/vendor/include";
 				INFOPLIST_FILE = SA3OnDevice/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.4;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"HEADER_SEARCH_PATHS" = "$(SRCROOT)/vendor/include";
-				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				"LIBRARY_SEARCH_PATHS[sdk=iphoneos*]" = "$(SRCROOT)/vendor/lib-device";
-				OTHER_LDFLAGS = "-lsa3 -lggml -lggml-cpu -lggml-metal -lggml-blas -lggml-base -lc++ -framework Accelerate -framework Metal -framework MetalKit -framework Foundation";
+				"LIBRARY_SEARCH_PATHS[sdk=iphonesimulator*]" = "$(SRCROOT)/vendor/lib-sim";
 				MARKETING_VERSION = 0.1;
+				ONLY_ACTIVE_ARCH = NO;
+				OTHER_LDFLAGS = (
+					"-lsa3",
+					"-lggml",
+					"-lggml-cpu",
+					"-lggml-metal",
+					"-lggml-blas",
+					"-lggml-base",
+					"-lc++",
+					"-framework",
+					Accelerate,
+					"-framework",
+					Metal,
+					"-framework",
+					MetalKit,
+					"-framework",
+					Foundation,
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.thecollabagepatch.sa3ondevice;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_OBJC_BRIDGING_HEADER = "SA3OnDevice/SA3Bridge.h";
+				SWIFT_OBJC_BRIDGING_HEADER = SA3OnDevice/SA3Bridge.h;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 1;
-				ONLY_ACTIVE_ARCH = NO;
-				GCC_OPTIMIZATION_LEVEL = "s";
-				SDKROOT = iphoneos;
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
-				ENABLE_DEBUG_DYLIB = NO;
 			};
 			name = Release;
 		};

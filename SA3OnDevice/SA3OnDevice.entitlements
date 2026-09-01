@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- A 1.5B DiT plus SAME-L plus T5 does not fit the default jetsam limit on a 4 GB device.
+	     This raises it; it is available to any development account and needs no review. -->
+	<key>com.apple.developer.kernel.increased-memory-limit</key><true/>
+</dict>
+</plist>
