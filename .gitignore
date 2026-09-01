@@ -6,3 +6,4 @@ vendor/include/libsa3.h
 .DS_Store
 *.xcuserdatad/
 xcuserdata/
+PLAN.md

@@ -1,5 +1,11 @@
 # sa3.cpp-ios
 
+**update 8/31:** thus far... training small-music on-device works at every level of
+quantization on the iphone 13, and actually seems reasonable. attempting to pre-encode
+latents with SAME-L, even the q4 variant, fails around the 5th track. it also takes
+forever... inference is reasonable for medium, although kind of slow. it's fast as hell
+for small-music. benchmarks incoming later.
+
 Minimal iOS harness for on-device sa3 inference and LoRA training. Experiment, not a product.
 
 Builds against sa3.cpp `feature/ios-build`. Run `./scripts/build-libsa3.sh sim` (or `device`), then open the xcodeproj.
