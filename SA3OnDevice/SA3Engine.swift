@@ -702,7 +702,10 @@ final class SA3Engine: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 if rc == 0 {
-                    self.status = .ready
+                    // .idle, not .ready: training unloaded the inference context and loads its own
+                    // models, so nothing is resident afterwards. Reporting .ready would enable
+                    // generate against a null ctx, which silently does nothing.
+                    self.status = .idle
                     self.append(cancelled ? "training cancelled" : "training done")
                     self.append(String(format: "mean %.3fs/step", mean))
                     self.append("adapter: \((adapter as NSString).lastPathComponent)")

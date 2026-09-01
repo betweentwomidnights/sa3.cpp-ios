@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import UIKit
 
 /// Deliberately plain. This is an instrument for finding out what an iPhone can do with sa3,
 /// not a product — every control maps to one libsa3 argument, and the log is the output that
@@ -71,7 +72,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     Spacer()
-                    Button("done") { focusedField = nil }
+                    Button("done") { dismissKeyboard() }
                 }
             }
         }
@@ -92,7 +93,7 @@ struct ContentView: View {
             }
             .pickerStyle(.menu)
             .disabled(!canLoad)
-            Picker("dit + same", selection: $encoding) {
+            Picker("dit", selection: $encoding) {
                 ForEach(Self.encodings, id: \.self) { Text($0) }
             }
             .pickerStyle(.menu)
@@ -128,9 +129,12 @@ struct ContentView: View {
 
     private var generateSection: some View {
         Section("generate") {
-            TextField("prompt", text: $prompt, axis: .vertical)
-                .lineLimit(1...3)
+            // Single line on purpose. axis:.vertical turns Return into a paragraph break, which is
+            // meaningless for a prompt and leaves the field with no way to dismiss its keyboard.
+            TextField("prompt", text: $prompt)
                 .focused($focusedField, equals: .prompt)
+                .submitLabel(.done)
+                .onSubmit { dismissKeyboard() }
             HStack {
                 Text("\(String(format: "%.1f", duration))s").font(.caption)
                     .frame(width: 70, alignment: .leading)
@@ -147,6 +151,8 @@ struct ContentView: View {
                 TextField("seed", text: $seed)
                     .keyboardType(.numbersAndPunctuation)
                     .focused($focusedField, equals: .seed)
+                    .submitLabel(.done)
+                    .onSubmit { dismissKeyboard() }
             }
             Picker("dit lora", selection: $loraID) {
                 Text("none").tag(String?.none)
@@ -195,7 +201,7 @@ struct ContentView: View {
             Toggle("keep models resident", isOn: $keepModels)
                 .font(.caption)
             Button("generate") {
-                focusedField = nil
+                dismissKeyboard()
                 engine.generate(prompt: prompt, steps: Int32(steps),
                                 seed: Int64(seed) ?? -1,
                                 frames: Int32(frames),
@@ -315,15 +321,26 @@ struct ContentView: View {
 
     /// An adapter only applies to the base it was trained against, so this filters on what is
     /// actually loaded — not on the variant picker, which may have moved on since.
+    /// Filter on what is loaded when something is, else on what is selected — otherwise the lists
+    /// go empty the moment a training run ends, since training unloads the inference context.
+    /// Generate is gated on .ready regardless, so a selection made before loading is harmless.
+    /// Clears SwiftUI focus and resigns first responder. @FocusState alone has been unreliable
+    /// here — the keyboard toolbar does not always appear — so this also goes through UIKit.
+    private func dismissKeyboard() {
+        focusedField = nil
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                        to: nil, from: nil, for: nil)
+    }
+
+    private var adapterBase: String { engine.loadedVariant ?? variant }
+
     private var applicableAdapters: [AdapterEntry] {
-        guard let loaded = engine.loadedVariant else { return [] }
-        return engine.adapters(for: loaded, target: "dit")
+        engine.adapters(for: adapterBase, target: "dit")
     }
 
     /// Decoder adapters key on the SAME family, so a same-s one is offered for both small variants.
     private var applicableDecoders: [AdapterEntry] {
-        guard let loaded = engine.loadedVariant else { return [] }
-        return engine.adapters(for: loaded, target: "decoder")
+        engine.adapters(for: adapterBase, target: "decoder")
     }
 
     private var selectedAdapter: AdapterEntry? {
@@ -332,8 +349,7 @@ struct ContentView: View {
     }
 
     private var applicableEncoders: [AdapterEntry] {
-        guard let loaded = engine.loadedVariant else { return [] }
-        return engine.adapters(for: loaded, target: "encoder")
+        engine.adapters(for: adapterBase, target: "encoder")
     }
 
     private var selectedDecoder: AdapterEntry? {
@@ -362,7 +378,9 @@ struct ContentView: View {
 
     /// Published tiers. Picking one whose gguf was never side-loaded fails at load with a message
     /// naming what the directory actually holds, which is the answer you wanted anyway.
-    private static let encodings = ["q4_k_m", "q5_k_m", "q8_0", "f16"]
+    // Every tier libsa3 accepts for the DiT. Picking one whose gguf is not side-loaded fails at
+    // load with a message naming what the directory actually holds.
+    private static let encodings = ["q4_k_m", "q5_k_m", "q8_0", "f16", "f32"]
     private static let textEncodings = ["q8_0", "f16", "f32"]
     private static let aeEncodings = ["f32", "f16", "q8_0", "q5_k_m", "q4_k_m"]
 
