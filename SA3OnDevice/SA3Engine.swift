@@ -600,7 +600,8 @@ final class SA3Engine: ObservableObject {
                encoding: String = "q4_k_m", textEncoding: String = "q8_0",
                aeEncoding: String = "f32",
                frames: Int32 = 64, rank: Int32 = 16, learningRate: Float = 2e-4,
-               evictTextEncoder: Bool = true, device: String? = nil) {
+               evictTextEncoder: Bool = true, device: String? = nil,
+               latentsCache: Bool = true, latentsCacheDir: String? = nil) {
         // sa3_train loads its own models on its own backend and needs no sa3_context. Leaving the
         // inference context alive would put a SECOND Metal backend beside it for the whole run --
         // two residency sets, two command queues, and after a keep_models generate a full second
@@ -622,6 +623,11 @@ final class SA3Engine: ObservableObject {
             var err = [CChar](repeating: 0, count: 1024)
             var res = sa3_train_result()
             var cfg = sa3_train_config()
+            let cacheDir = latentsCacheDir ?? ""
+            // Real struct fields as of the latents-cache work, so no config file to write. 0 keeps
+            // the default (on), negative disables — the convention checkpoint_every uses, so a
+            // zero-initialized config means "on" either way.
+            cfg.latents_cache = latentsCache ? 0 : -1
             cfg.steps = steps
             // Crop length dominates activation memory for the backward pass, so it is the first
             // thing to shrink on a phone. 64 frames ~= 5.9 s against the library's 512 (~47.6 s).
@@ -670,6 +676,8 @@ final class SA3Engine: ObservableObject {
                                 encoding.withCString { encC in
                                     textEncoding.withCString { tencC in
                                       aeEncoding.withCString { aencC in
+                                       cacheDir.withCString { cdirC in
+                                        cfg.latents_cache_dir = cacheDir.isEmpty ? nil : cdirC
                                         cfg.dataset_dir = ds
                                         cfg.output_dir = outp
                                         cfg.models_dir = md
@@ -684,6 +692,7 @@ final class SA3Engine: ObservableObject {
                                         // the adapter learns from, so this matters more here.
                                         cfg.autoencoder_encoding = aencC
                                         return sa3_train(&cfg, &hooks, &res, &err, Int32(err.count))
+                                       }
                                       }
                                     }
                                 }

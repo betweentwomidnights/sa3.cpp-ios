@@ -28,6 +28,7 @@ struct ContentView: View {
     /// Trades an encoder reload per caption window for ~285 MB of resident memory. On by default
     /// here; the flag exists for exactly this case.
     @State private var evictTextEncoder = true
+    @State private var latentsCache = true
     @State private var seed = "42"
     /// The benchmark axes. `encoding` covers the DiT + SAME; the text encoder resolves apart from
     /// it, so it gets its own control — the useful pairing is a quantized DiT with a cheap encoder.
@@ -240,6 +241,8 @@ struct ContentView: View {
                 .font(.caption2).foregroundStyle(.secondary)
             Toggle("evict text encoder", isOn: $evictTextEncoder)
                 .font(.caption)
+            Toggle("latents cache", isOn: $latentsCache)
+                .font(.caption)
             if let s = engine.lastStep {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("step \(s.step)/\(s.maxSteps)  loss \(String(format: "%.4f", s.loss))")
@@ -259,7 +262,8 @@ struct ContentView: View {
                              frames: Int32(cropFrames), rank: Int32(rank),
                              learningRate: Float(pow(10.0, lrExponent)),
                              evictTextEncoder: evictTextEncoder,
-                             device: useCPU ? "cpu" : nil)
+                             device: useCPU ? "cpu" : nil,
+                             latentsCache: latentsCache)
             }
             // Training does not need models loaded -- it loads its own. Requiring .ready forced a
             // second Metal backend to exist alongside it for the whole run.
