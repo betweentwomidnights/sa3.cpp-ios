@@ -14,6 +14,8 @@
 	<!-- Models and datasets are side-loaded rather than bundled; these let the Files app see them. -->
 	<key>UIFileSharingEnabled</key><true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key><true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Record a take to continue or transform with sa3.</string>
 	<key>UILaunchScreen</key><dict/>
 	<key>UIRequiredDeviceCapabilities</key><array><string>arm64</string></array>
 	<key>UISupportedInterfaceOrientations</key>

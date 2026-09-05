@@ -111,6 +111,14 @@ final class SA3Engine: ObservableObject {
     @Published var progress: Double = 0
     @Published var lastStep: TrainStep?
 
+    /// Every step of the current run, for the loss plot. A 2000-step run is 2000 small structs —
+    /// cheap enough to keep whole, and the plot wants the shape of the whole run, not a window.
+    @Published var stepHistory: [TrainStep] = []
+
+    /// The seed libsa3 actually used, resolved when the request asked for a random one. Iterating
+    /// on a lora strength is only musical if the seed can be pinned to the take you liked.
+    @Published var lastSeed: UInt64?
+
     /// Adapters this device has trained. The gguf records `lora.adapter_type` but NOT which base
     /// it targets, so the variant cannot be recovered from the file — we record it at train time
     /// or we lose it. That is the whole reason this registry exists rather than a directory scan.
@@ -119,6 +127,10 @@ final class SA3Engine: ObservableObject {
     /// The variant currently loaded, as opposed to the one selected in the UI. An adapter is only
     /// applicable to the base it was trained against, so the picker filters on this.
     @Published private(set) var loadedVariant: String?
+
+    /// Whether a context exists. `status == .ready` is the same thing today, but generate is gated
+    /// on the context and the two drift apart while a call is in flight.
+    var isLoaded: Bool { ctx != nil }
 
     struct TrainStep: Equatable {
         var step: Int
@@ -203,8 +215,10 @@ final class SA3Engine: ObservableObject {
                                                     options: []) else { return [] }
         for entry in top {
             let name = entry.lastPathComponent
+            // out- is a generation, rec- a recording; both are loose wavs in the container root
+            // and would otherwise be one row each.
             let key = name.hasPrefix("train-run") ? "train-runs"
-                    : (name.hasPrefix("out-") ? "wavs" : name)
+                    : (name.hasPrefix("out-") || name.hasPrefix("rec-") ? "wavs" : name)
             out[key, default: 0] += Self.sizeOf(entry)
         }
         return out.sorted { $0.value > $1.value }.map { ($0.key, $0.value) }
@@ -506,10 +520,48 @@ final class SA3Engine: ObservableObject {
 
     // MARK: - generate
 
-    func generate(prompt: String, steps: Int32, seed: Int64, frames: Int32 = 128,
-                  keepModels: Bool = true,
-                  loras: [(AdapterEntry, Float)] = [],
-                  completion: @escaping (URL?) -> Void) {
+    /// One inference call. A struct rather than a dozen arguments because create, continue and
+    /// transform differ only in `initAudio` — everything else is the shared jam configuration, and
+    /// keeping them one type is what makes the three tabs identical.
+    struct Request {
+        var prompt: String = ""
+        var negativePrompt: String = ""
+        var steps: Int32 = 8
+        var seed: Int64 = -1
+        /// Output length. Ignored when `initAudio` is set: libsa3 derives the length from the
+        /// source audio (extended to `inpaintEnd` for a continuation).
+        var frames: Int32 = 128
+        /// 1.0 is CFG off (one pass per step). Anything else doubles the DiT cost.
+        var cfgScale: Float = 1
+        var distShift: String = "LogSNR"
+        /// Schedule headroom in seconds. < 0 keeps libsa3's 6 s (no ending); 0 lets the model end
+        /// the piece. Only applies to text2music — init audio fixes the canvas.
+        var durationPadding: Float = -1
+        var keepModels: Bool = true
+        var loras: [(AdapterEntry, Float)] = []
+        var initAudio: InitAudio?
+    }
+
+    /// Source audio for continue (inpaint) and transform (a2a). Samples are PLANAR and must be
+    /// stereo — SAME's `out_channels / patch_size` is 2, and libsa3 rejects anything else.
+    struct InitAudio {
+        enum Mode { case transform, continuation }
+        var mode: Mode
+        var samples: [Float]
+        var frameCount: Int
+        var channels: Int
+        var sampleRate: Int
+        /// Transform only. How much of the source survives: 0.85 (libsa3's default) keeps little,
+        /// low values keep nearly all of it.
+        var noiseLevel: Float = 0.85
+        /// Continuation only, in seconds. The window [start, end) is regenerated and everything
+        /// outside it is kept, so a continuation is start = source duration, end = that plus the
+        /// seconds to add.
+        var inpaintStart: Float = 0
+        var inpaintEnd: Float = 0
+    }
+
+    func generate(_ req: Request, completion: @escaping (URL?) -> Void) {
         guard let c = ctx else { completion(nil); return }
         status = .working("generating")
         progress = 0
@@ -520,18 +572,34 @@ final class SA3Engine: ObservableObject {
         queue.async { [weak self] in
             var err = [CChar](repeating: 0, count: 1024)
             var out = sa3_audio()
-            var req = sa3_request_ex()
-            req.request.steps = steps
-            req.request.seed = seed
-            req.request.frames = frames
+            var r = sa3_request_ex()
+
+            // strdup + free beats nesting a withCString closure per string: the request needs five
+            // of them plus one per adapter, and the pyramid that produced was unreadable.
+            var owned: [UnsafeMutablePointer<CChar>] = []
+            func c_str(_ s: String) -> UnsafePointer<CChar>? {
+                guard let p = strdup(s) else { return nil }
+                owned.append(p)
+                return UnsafePointer(p)
+            }
+            defer { owned.forEach { free($0) } }
+
+            r.request.prompt = c_str(req.prompt)
+            if !req.negativePrompt.isEmpty { r.request.negative_prompt = c_str(req.negativePrompt) }
+            r.request.steps = req.steps
+            r.request.seed = req.seed
+            r.request.frames = req.frames
+            r.request.cfg_scale = req.cfgScale
+            r.request.duration_padding_sec = req.durationPadding
+            r.request.dist_shift = c_str(req.distShift)
             // Resident keeps T5 + DiT + SAME loaded (lowest latency, peak = their sum). Frugal frees
             // T5 before sampling and the DiT before decode, so peak is the largest single net
             // instead — the difference between ~1.45 GB and ~0.9 GB for f16 small-music.
-            req.request.keep_models = keepModels ? 1 : 0
-            req.decode_chunk_size = 128
-            req.decode_overlap = 32
-            req.request.user = box
-            req.request.on_progress = { user, stage, step, total, fraction in
+            r.request.keep_models = req.keepModels ? 1 : 0
+            r.decode_chunk_size = 128
+            r.decode_overlap = 32
+            r.request.user = box
+            r.request.on_progress = { user, stage, step, total, fraction in
                 guard let user else { return }
                 let b = Unmanaged<CallbackBox>.fromOpaque(user).takeUnretainedValue()
                 let s = stage.map { String(cString: $0) } ?? ""
@@ -540,8 +608,8 @@ final class SA3Engine: ObservableObject {
                     b.engine?.status = .working("\(s) \(step)/\(total)")
                 }
             }
-            req.cancel_user = box
-            req.should_cancel = { user in
+            r.cancel_user = box
+            r.should_cancel = { user in
                 guard let user else { return 0 }
                 let b = Unmanaged<CallbackBox>.fromOpaque(user).takeUnretainedValue()
                 return b.cancelled ? 1 : 0
@@ -551,36 +619,52 @@ final class SA3Engine: ObservableObject {
             // bound at load. Passing full paths skips libsa3's lora-<name>-*.gguf lookup, and each
             // gguf carries its own lora.target, so a DiT and a decoder adapter can go in the same
             // array and libsa3 routes each onto the right network without being told which is which.
-            let paths = loras.map { $0.0.path }
-            let strengths = loras.map { $0.1 }
-            let rc = prompt.withCString { p -> Int32 in
-                req.request.prompt = p
-                guard !paths.isEmpty else {
-                    return sa3_generate_ex(c, &req, &out, &err, Int32(err.count))
-                }
-                // Each withCString is only valid inside its own closure, so build the array of
-                // C strings by recursing rather than collecting pointers that would dangle.
-                func withPaths(_ i: Int, _ acc: [UnsafePointer<CChar>?],
-                               _ body: ([UnsafePointer<CChar>?]) -> Int32) -> Int32 {
-                    if i == paths.count { return body(acc) }
-                    return paths[i].withCString { cp in
-                        withPaths(i + 1, acc + [cp], body)
+            let names: [UnsafePointer<CChar>?] = req.loras.map { c_str($0.0.path) }
+            let strengths = req.loras.map { $0.1 }
+
+            let rc = names.withUnsafeBufferPointer { nb -> Int32 in
+                strengths.withUnsafeBufferPointer { sb -> Int32 in
+                    if !names.isEmpty {
+                        r.request.n_loras = Int32(names.count)
+                        r.request.lora_names = nb.baseAddress
+                        r.request.lora_strengths = sb.baseAddress
                     }
-                }
-                return withPaths(0, []) { names in
-                    names.withUnsafeBufferPointer { nb in
-                        strengths.withUnsafeBufferPointer { sb in
-                            req.request.n_loras = Int32(names.count)
-                            req.request.lora_names = nb.baseAddress
-                            req.request.lora_strengths = sb.baseAddress
-                            return sa3_generate_ex(c, &req, &out, &err, Int32(err.count))
+                    guard let src = req.initAudio else {
+                        return sa3_generate_ex(c, &r, &out, &err, Int32(err.count))
+                    }
+                    return src.samples.withUnsafeBufferPointer { ab -> Int32 in
+                        // The mode constants come from an anonymous C enum, so Swift imports
+                        // them as plain Int constants rather than as a RawRepresentable type.
+                        r.init_audio.mode = Int32(src.mode == .transform
+                                                  ? SA3_INIT_AUDIO_A2A : SA3_INIT_AUDIO_INPAINT)
+                        r.init_audio.samples = ab.baseAddress
+                        r.init_audio.n_samp = Int32(src.frameCount)
+                        r.init_audio.n_ch = Int32(src.channels)
+                        r.init_audio.sample_rate = Int32(src.sampleRate)
+                        r.init_audio.init_noise_level = src.noiseLevel
+                        // A negative start means "not inpainting" to libsa3, so only a continuation
+                        // sets the window; a2a leaves both at -1.
+                        if src.mode == .continuation {
+                            r.init_audio.inpaint_start = src.inpaintStart
+                            r.init_audio.inpaint_end = src.inpaintEnd
+                        } else {
+                            r.init_audio.inpaint_start = -1
+                            r.init_audio.inpaint_end = -1
                         }
+                        // The source crosses SAME twice per iteration, so chunk the encode too —
+                        // the monolithic SAME-L encode is what runs the phone out of memory.
+                        r.encode_chunk_size = 128
+                        r.encode_overlap = 32
+                        return sa3_generate_ex(c, &r, &out, &err, Int32(err.count))
                     }
                 }
             }
+
             let message = String(cString: err)
             var url: URL?
+            var usedSeed: UInt64 = 0
             if rc == 0 {
+                usedSeed = out.seed
                 url = Self.writeWav(out)
                 sa3_free_audio(&out)
             }
@@ -588,7 +672,12 @@ final class SA3Engine: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.status = rc == 0 ? .ready : .failed(message)
-                self.append(rc == 0 ? "generated \(url?.lastPathComponent ?? "")" : "generate failed: \(message)")
+                if rc == 0 {
+                    self.lastSeed = usedSeed
+                    self.append("generated \(url?.lastPathComponent ?? "") (seed \(usedSeed))")
+                } else {
+                    self.append("generate failed: \(message)")
+                }
                 completion(url)
             }
         }
@@ -613,6 +702,7 @@ final class SA3Engine: ObservableObject {
         }
         status = .working("training")
         lastStep = nil
+        stepHistory = []
         let live = CallbackBox(self)
         activeBox = live
         let box = Unmanaged.passRetained(live).toOpaque()
@@ -659,6 +749,7 @@ final class SA3Engine: ObservableObject {
                                   seconds: step.step_seconds)
                 Task { @MainActor in
                     b.engine?.lastStep = s
+                    b.engine?.stepHistory.append(s)
                     if s.maxSteps > 0 { b.engine?.progress = Double(s.step) / Double(s.maxSteps) }
                     b.engine?.status = .working("training \(s.step)/\(s.maxSteps)")
                 }

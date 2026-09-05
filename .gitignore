@@ -7,3 +7,4 @@ vendor/include/libsa3.h
 *.xcuserdatad/
 xcuserdata/
 PLAN.md
+CONTINUATION-SPLICE.md
