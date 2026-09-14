@@ -22,6 +22,7 @@
 		SA3000000000000000000039 /* RecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000029 /* RecordingManager.swift */; };
 		SA3000000000000000000041 /* SampleLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000040 /* SampleLibrary.swift */; };
 		SA3000000000000000000043 /* PadEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000042 /* PadEngine.swift */; };
+		SA3000000000000000000054 /* AudioRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000053 /* AudioRoute.swift */; };
 		SA3000000000000000000045 /* PadDrawer.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000044 /* PadDrawer.swift */; };
 		SA3000000000000000000047 /* CountIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000046 /* CountIn.swift */; };
 		SA3000000000000000000049 /* TakeEditor.swift in Sources */ = {isa = PBXBuildFile; fileRef = SA3000000000000000000048 /* TakeEditor.swift */; };
@@ -45,6 +46,7 @@
 		SA3000000000000000000029 /* RecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingManager.swift; sourceTree = "<group>"; };
 		SA3000000000000000000040 /* SampleLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleLibrary.swift; sourceTree = "<group>"; };
 		SA3000000000000000000042 /* PadEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadEngine.swift; sourceTree = "<group>"; };
+		SA3000000000000000000053 /* AudioRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRoute.swift; sourceTree = "<group>"; };
 		SA3000000000000000000044 /* PadDrawer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PadDrawer.swift; sourceTree = "<group>"; };
 		SA3000000000000000000046 /* CountIn.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CountIn.swift; sourceTree = "<group>"; };
 		SA3000000000000000000048 /* TakeEditor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TakeEditor.swift; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 				SA3000000000000000000029 /* RecordingManager.swift */,
 				SA3000000000000000000040 /* SampleLibrary.swift */,
 				SA3000000000000000000042 /* PadEngine.swift */,
+				SA3000000000000000000053 /* AudioRoute.swift */,
 				SA3000000000000000000044 /* PadDrawer.swift */,
 				SA3000000000000000000046 /* CountIn.swift */,
 				SA3000000000000000000048 /* TakeEditor.swift */,
@@ -192,6 +195,7 @@
 				SA3000000000000000000039 /* RecordingManager.swift in Sources */,
 				SA3000000000000000000041 /* SampleLibrary.swift in Sources */,
 				SA3000000000000000000043 /* PadEngine.swift in Sources */,
+				SA3000000000000000000054 /* AudioRoute.swift in Sources */,
 				SA3000000000000000000045 /* PadDrawer.swift in Sources */,
 				SA3000000000000000000047 /* CountIn.swift in Sources */,
 				SA3000000000000000000049 /* TakeEditor.swift in Sources */,

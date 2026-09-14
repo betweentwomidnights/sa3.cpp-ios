@@ -22,6 +22,11 @@ final class PadEngine: ObservableObject {
     @Published private(set) var held: Set<Int> = []
     @Published private(set) var recording = false
     @Published private(set) var recordedSeconds: Double = 0
+    /// 0...1 off the microphone, for the overdub meter. Only moves while the mic is armed.
+    @Published private(set) var micLevel: Double = 0
+    /// Whether the graph currently has the microphone in it. Read by the route/UI layer and by
+    /// `configurationChanged`, which has to rebuild on the same category it tore down.
+    private(set) var micEnabled = false
 
     /// Everything is converted to this on load, so every connection carries one format and a mono
     /// recording drops onto a pad beside a stereo generation without a graph rebuild.
@@ -33,6 +38,11 @@ final class PadEngine: ObservableObject {
     /// than on `AudioPlayerManager` for exactly one reason: the tap is on the main mixer, so
     /// anything that plays through here is in the file and anything that does not, is not.
     private let takeNode = AVAudioPlayerNode()
+    /// The microphone's way into the mix, when an overdub has asked for one. It gets its own mixer
+    /// so the graph has a stable connection point: `inputNode` only reports a usable format under
+    /// `.playAndRecord`, so it is joined on when the mic is armed and left out entirely otherwise.
+    private let micMixer = AVAudioMixerNode()
+    private var micConnected = false
     private var capture: Capture?
     private var clock: Timer?
 
@@ -96,6 +106,10 @@ final class PadEngine: ObservableObject {
         }
         engine.attach(takeNode)
         engine.connect(takeNode, to: engine.mainMixerNode, format: Self.format)
+        // Attached from the start, fed only when the mic is armed. A mixer with nothing connected
+        // to it renders silence, so this costs nothing until an overdub asks for it.
+        engine.attach(micMixer)
+        engine.connect(micMixer, to: engine.mainMixerNode, format: Self.format)
         NotificationCenter.default.addObserver(
             self, selector: #selector(configurationChanged),
             name: .AVAudioEngineConfigurationChange, object: engine)
@@ -106,15 +120,40 @@ final class PadEngine: ObservableObject {
     /// Called when the drawer opens. The engine is not kept running behind a closed drawer: it
     /// holds the audio session active, and an active session is what stops the recorder and the
     /// take player from configuring their own.
-    func start() {
-        guard !running else { return }
+    ///
+    /// `mic` arms the microphone as another source into the same mixer, which is all a mic overdub
+    /// needs — the tap already catches whatever the mixer is summing. It is a restart rather than a
+    /// flag because the session category has to be right *before* the engine starts: under
+    /// `.playback` the input node reports zero channels and connecting it throws.
+    func start(mic: Bool = false) {
+        if running && mic == micEnabled { return }
+        if running { stop() }
+        micEnabled = mic
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .default)
+        if mic {
+            // `.allowBluetoothA2DP` WITHOUT `.allowBluetooth`: asking for the HFP profile as well
+            // is what drags AirPods down to mono at roughly 16 kHz, which would print the overdub
+            // through a telephone. This way the buds keep the high-quality output profile and the
+            // input comes off the phone's own mic — with the take in your ears rather than on the
+            // speaker, that is exactly the pair we want.
+            // `.defaultToSpeaker` only decides where audio goes when nothing else is connected —
+            // headphones still win — so it costs the overdub nothing and keeps the warned-about
+            // case honest: on the speaker you hear the take out loud, which is what the warning
+            // said would happen. Without it `.playAndRecord` falls back to the earpiece, which
+            // reads as a broken overdub rather than as bleed.
+            try? session.setCategory(.playAndRecord, mode: .default,
+                                     options: [.defaultToSpeaker, .allowBluetoothA2DP,
+                                               .mixWithOthers])
+        } else {
+            try? session.setCategory(.playback, mode: .default)
+        }
         // The number that actually decides whether a pad feels tight. It is a request, not a
         // guarantee — the OS grants what the route allows — but asking for 5 ms is the difference
         // between a pad and a button that eventually makes a sound.
         try? session.setPreferredIOBufferDuration(0.005)
         try? session.setActive(true)
+
+        if mic { connectMic() }
 
         engine.prepare()
         do { try engine.start() } catch { return }
@@ -139,8 +178,59 @@ final class PadEngine: ObservableObject {
         }
         stopAudition()
         takeNode.stop()
+        disconnectMic()
         engine.stop()
         running = false
+        if micEnabled {
+            micEnabled = false
+            // Hand the session back the way a playback-only app expects to find it. Left on
+            // `.playAndRecord` with no `.defaultToSpeaker`, the take player would come out of the
+            // earpiece the moment the headphones are unplugged.
+            try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+        }
+    }
+
+    // MARK: - the microphone
+
+    /// Reading `inputNode` is what prompts for the microphone and what fixes its format, so it
+    /// happens here rather than in `init` — opening the pad drawer should not ask for the mic.
+    ///
+    /// The mic is monitored, because it goes through the same mixer the tap is on and there is no
+    /// way to be in one and not the other. Through headphones that is what you want; on the
+    /// loudspeaker it is a feedback loop, which is why the caller checks the route first.
+    private func connectMic() {
+        guard !micConnected else { return }
+        let input = engine.inputNode
+        let format = input.inputFormat(forBus: 0)
+        // Zero channels means the session did not actually grant input — connecting that throws.
+        guard format.channelCount > 0, format.sampleRate > 0 else { return }
+        engine.connect(input, to: micMixer, format: format)
+        // Metering only. The capture tap stays where it was, on the main mixer, so this one can be
+        // as cheap as it likes and never touches the file.
+        input.installTap(onBus: 0, bufferSize: 2048, format: format) { [weak self] buffer, _ in
+            let level = Self.level(buffer)
+            Task { @MainActor in self?.micLevel = level }
+        }
+        micConnected = true
+    }
+
+    private func disconnectMic() {
+        guard micConnected else { return }
+        engine.inputNode.removeTap(onBus: 0)
+        engine.disconnectNodeOutput(engine.inputNode)
+        micConnected = false
+        micLevel = 0
+    }
+
+    /// Matched to the recorder's meter, floor and all: -50 dB rather than -160, so the bar moves
+    /// with a performance instead of sitting pinned near zero for anything short of a shout.
+    private static func level(_ buffer: AVAudioPCMBuffer) -> Double {
+        guard let data = buffer.floatChannelData, buffer.frameLength > 0 else { return 0 }
+        let n = Int(buffer.frameLength)
+        var sum: Float = 0
+        for i in 0..<n { let v = data[0][i]; sum += v * v }
+        let db = 20 * log10(max(sqrt(sum / Float(n)), 1e-7))
+        return max(0, min(1, Double(db + 50) / 50))
     }
 
     /// A route change (headphones in or out) stops the engine underneath us and leaves every node
@@ -148,8 +238,10 @@ final class PadEngine: ObservableObject {
     @objc private nonisolated func configurationChanged(_ note: Notification) {
         Task { @MainActor in
             guard self.running else { return }
+            let mic = self.micEnabled
             self.running = false
-            self.start()
+            self.disconnectMic()
+            self.start(mic: mic)
         }
     }
 
@@ -323,8 +415,11 @@ final class PadEngine: ObservableObject {
         }
     }
 
-    /// Records what the pads are playing. Nothing to do with the microphone — this is the graph's
-    /// own output, so it needs no permission and no `.playAndRecord` session.
+    /// Records whatever this graph is summing.
+    ///
+    /// With nothing armed that is the pads alone, which needs no permission and no
+    /// `.playAndRecord` session. With `start(mic:)` it is the pads and the microphone, and the
+    /// capture code below does not know the difference — the graph changed, not the tap.
     ///
     /// The tap sits on the main mixer rather than on the pad nodes, which is the part that matters
     /// long term: anything routed into this graph later lands in the recording without the capture

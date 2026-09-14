@@ -78,7 +78,10 @@ final class RecordingManager: NSObject, ObservableObject {
         recorder?.stop()
     }
 
-    private func requestPermission(_ then: @escaping (Bool) -> Void) {
+    /// Also the mic overdub's way in. That path records through `PadEngine` rather than through
+    /// this class, but the permission and the denial alert behind it should have one owner — and
+    /// `permission` is already what the jam tab reads to decide whether a nil result was a refusal.
+    func requestPermission(_ then: @escaping (Bool) -> Void) {
         switch AVAudioApplication.shared.recordPermission {
         case .granted:
             permission = .granted

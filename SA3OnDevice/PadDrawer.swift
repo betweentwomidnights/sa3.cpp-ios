@@ -28,7 +28,7 @@ struct PadDrawer: View {
     @EnvironmentObject var settings: SA3Settings
     @StateObject private var countIn = CountIn()
     @State private var editing = false
-    @State private var mode: RecordMode = .replace
+    @State private var mode: JamControls.RecordMode = .replace
     @State private var picking: PadSlot?
 
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 4)
@@ -75,7 +75,9 @@ struct PadDrawer: View {
     // MARK: - header
 
     private var header: some View {
-        HStack(spacing: 14) {
+        // 10 rather than 14: recording puts seven items in this row — title, mode, clock, record,
+        // edit, chevron and the spacer between them — and the gaps were the widest thing in it.
+        HStack(spacing: 10) {
             Text("pads")
                 .font(.subheadline.weight(.semibold))
             if expanded && takeURL != nil {
@@ -96,7 +98,10 @@ struct PadDrawer: View {
                         .animation(.snappy(duration: 0.12), value: beat)
                 } else if pads.recording {
                     Text(elapsedLabel)
-                        .font(.caption.monospacedDigit()).foregroundStyle(.red)
+                        // Smaller than the rest of the header, and held to one line: in add mode
+                        // this carries two numbers and a unit, and it is the widest thing here.
+                        .font(.caption2.monospacedDigit()).foregroundStyle(.red)
+                        .lineLimit(1)
                 }
                 Button(action: toggleRecording) {
                     Image(systemName: armed ? "stop.fill" : "record.circle")
@@ -198,33 +203,11 @@ struct PadDrawer: View {
         }
     }
 
-/// Replace makes the performance the new take; add plays the current take underneath it and
-    /// records the sum. Only offered when there is a take to add to — otherwise there is nothing
-    /// for the two options to differ about.
-    enum RecordMode { case replace, add }
-
-    /// Add falls back to replace the moment the take it referred to is gone.
-    private var effectiveMode: RecordMode { takeURL == nil ? .replace : mode }
+/// Add falls back to replace the moment the take it referred to is gone.
+    private var effectiveMode: JamControls.RecordMode { takeURL == nil ? .replace : mode }
 
     private var modeToggle: some View {
-        HStack(spacing: 2) {
-            modeSegment("replace", .replace)
-            modeSegment("add", .add)
-        }
-        .padding(2)
-        .background(Color.white.opacity(0.07), in: Capsule())
-    }
-
-    private func modeSegment(_ title: String, _ value: RecordMode) -> some View {
-        let on = effectiveMode == value
-        return Button { mode = value } label: {
-            Text(title)
-                .font(.caption2.weight(.medium))
-                .padding(.horizontal, 8).padding(.vertical, 3)
-                .background(on ? JamControls.accent : Color.clear, in: Capsule())
-                .foregroundStyle(on ? Color.black : Color.secondary)
-        }
-        .disabled(armed)
+        JamControls.RecordModeToggle(mode: $mode, disabled: armed)
     }
 
     /// In add mode the length is known in advance, so show the target rather than a number that
@@ -233,7 +216,7 @@ struct PadDrawer: View {
         guard effectiveMode == .add, let takeURL else {
             return String(format: "%.1fs", pads.recordedSeconds)
         }
-        return String(format: "%.1f / %.1fs", pads.recordedSeconds, SA3AudioFile.duration(takeURL))
+        return String(format: "%.1f/%.1fs", pads.recordedSeconds, SA3AudioFile.duration(takeURL))
     }
 
     /// Recording, or about to be. Everything that must not move mid-take keys off this rather

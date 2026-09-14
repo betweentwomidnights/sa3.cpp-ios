@@ -10,6 +10,49 @@ enum JamControls {
     static let accent = Color.teal
     static let field = Color.white.opacity(0.09)
 
+    // MARK: - replace / add
+
+    /// Replace makes the performance the new take; add plays the current take underneath it and
+    /// records the sum.
+    ///
+    /// Shared by the pads and the mic because it is one decision and deserves one shape. The two
+    /// differ only in what they need from the room: pad add is inaudible to anything, mic add plays
+    /// the take out loud next to an open microphone.
+    enum RecordMode { case replace, add }
+
+    /// Only worth showing when there is a take to add to — with nothing there, the two options have
+    /// nothing to differ about, so both callers hide it rather than offering a dead choice.
+    struct RecordModeToggle: View {
+        @Binding var mode: RecordMode
+        var disabled = false
+
+        var body: some View {
+            HStack(spacing: 2) {
+                segment("replace", .replace)
+                segment("add", .add)
+            }
+            .padding(2)
+            .background(Color.white.opacity(0.07), in: Capsule())
+            // The drawer header is tight — a running clock beside this can squeeze it until
+            // "replace" wraps onto two lines. It is a two-word control with a fixed intrinsic
+            // width, so it keeps that width everywhere and the row's slack comes from elsewhere.
+            .fixedSize()
+        }
+
+        private func segment(_ title: String, _ value: RecordMode) -> some View {
+            let on = mode == value
+            return Button { mode = value } label: {
+                Text(title)
+                    .font(.caption2.weight(.medium))
+                    .lineLimit(1)
+                    .padding(.horizontal, 8).padding(.vertical, 3)
+                    .background(on ? accent : Color.clear, in: Capsule())
+                    .foregroundStyle(on ? Color.black : Color.secondary)
+            }
+            .disabled(disabled)
+        }
+    }
+
     // MARK: - prompt
 
     struct PromptField: View {

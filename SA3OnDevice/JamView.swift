@@ -17,6 +17,10 @@ struct JamView: View {
     @StateObject private var recorder = RecordingManager()
     @StateObject private var library = SampleLibrary()
     @StateObject private var pads = PadEngine()
+    @StateObject private var route = AudioRoute()
+    /// The overdub's count-in. Its own instance rather than the recorder's, because the two take
+    /// different paths to a file and only one of them is running at a time anyway.
+    @StateObject private var overdubCount = CountIn()
 
     @State private var showCreate = false
     @State private var showContinue = false
@@ -27,6 +31,11 @@ struct JamView: View {
     @State private var showSaveToPad = false
     @State private var showTakeEditor = false
     @State private var padsExpanded = false
+    /// What the record button does. Replace goes through `RecordingManager`; add goes through the
+    /// pad graph, which is the only one of the two that can play the take while the mic is open.
+    @State private var micMode: JamControls.RecordMode = .replace
+    @State private var micOverdub = false
+    @State private var showBleedWarning = false
     /// A Button reports its tap on release, so the long press below fires first and the tap
     /// follows it. Recording when the hold fired lets the button swallow that trailing tap without
     /// a flag that stays set — if SwiftUI ever declines to deliver the tap, a stuck flag would eat
@@ -46,6 +55,8 @@ struct JamView: View {
                         engineBar
                         if recorder.isActive {
                             recordingCard
+                        } else if micOverdub {
+                            overdubCard
                         } else if session.current != nil {
                             takeCard
                             takeActions
@@ -60,7 +71,7 @@ struct JamView: View {
                 // so an open bank scrolls the take up instead of sitting on top of the transport.
                 .safeAreaInset(edge: .bottom, spacing: 0) {
                     PadDrawer(library: library, pads: pads, expanded: $padsExpanded,
-                              canRecord: !recorder.isActive && !busy,
+                              canRecord: !recorder.isActive && !micOverdub && !busy,
                               takeURL: session.url,
                               onWillRecord: { player.stopAndRelease() }) { url in
                         // Both modes land here. Replace makes the performance the take; add makes
@@ -102,6 +113,13 @@ struct JamView: View {
                 Button("not now", role: .cancel) {}
             } message: {
                 Text("recording needs microphone access. turn it on for SA3OnDevice in the Settings app.")
+            }
+            .confirmationDialog("no headphones", isPresented: $showBleedWarning,
+                                titleVisibility: .visible) {
+                Button("record anyway") { beginOverdub() }
+                Button("cancel", role: .cancel) {}
+            } message: {
+                Text("add plays the take out loud while the mic is open, so the speaker ends up in the recording. headphones fix it.")
             }
             .sheet(isPresented: $showShare) {
                 if let url = session.url { ShareSheet(items: [url]) }
@@ -200,8 +218,34 @@ struct JamView: View {
     /// than a sheet because the engine strip above it stays useful: you can see what will be
     /// loaded to continue whatever you are about to play.
     private var recordingCard: some View {
+        captureCard(beat: recorder.countInBeat,
+                    elapsed: String(format: "%.1fs", recorder.elapsed),
+                    level: recorder.level,
+                    footnote: "stops on its own at \(Int(settings.maxRecordSeconds))s",
+                    running: recorder.isRecording,
+                    stop: recorder.stop)
+    }
+
+    /// The overdub's card. The pad drawer keeps its recording state in its own header because the
+    /// pads are the thing you are watching; here the take is, so it goes where the take card was.
+    ///
+    /// The length is known in advance — the take is what ends it — so the clock counts toward it
+    /// rather than up toward nothing in particular.
+    private var overdubCard: some View {
+        captureCard(beat: overdubCount.beat,
+                    elapsed: String(format: "%.1f / %.1fs", pads.recordedSeconds, sourceSeconds),
+                    level: pads.micLevel,
+                    footnote: "over the take — stops when it ends",
+                    running: pads.recording,
+                    stop: stopOverdub)
+    }
+
+    /// Both ways of capturing a take get the same card: the count, then a meter and a clock, then
+    /// one button that means cancel while the count is running and stop once it is not.
+    private func captureCard(beat: Int?, elapsed: String, level: Double, footnote: String,
+                             running: Bool, stop: @escaping () -> Void) -> some View {
         VStack(spacing: 16) {
-            if let beat = recorder.countInBeat {
+            if let beat {
                 Text("\(beat)")
                     .font(.system(size: 68, weight: .bold, design: .rounded))
                     .foregroundStyle(JamControls.accent)
@@ -212,20 +256,20 @@ struct JamView: View {
             } else {
                 Image(systemName: "waveform.badge.mic")
                     .font(.system(size: 40)).foregroundStyle(.red)
-                Text(String(format: "%.1fs", recorder.elapsed))
+                Text(elapsed)
                     .font(.system(size: 34, weight: .semibold, design: .monospaced))
-                meter
-                Text("stops on its own at \(Int(settings.maxRecordSeconds))s")
+                meter(level)
+                Text(footnote)
                     .font(.caption2).foregroundStyle(.secondary)
             }
 
-            Button(action: recorder.stop) {
-                Label(recorder.isRecording ? "stop" : "cancel",
-                      systemImage: recorder.isRecording ? "stop.fill" : "xmark")
+            Button(action: stop) {
+                Label(running ? "stop" : "cancel",
+                      systemImage: running ? "stop.fill" : "xmark")
                     .font(.headline)
                     .foregroundStyle(.white)
                     .padding(.horizontal, 26).padding(.vertical, 13)
-                    .background(recorder.isRecording ? Color.red : Color.white.opacity(0.14),
+                    .background(running ? Color.red : Color.white.opacity(0.14),
                                 in: RoundedRectangle(cornerRadius: 10))
             }
         }
@@ -236,17 +280,17 @@ struct JamView: View {
 
     /// Average power, not peak — it moves like the performance rather than flickering on every
     /// transient, which is what you want to confirm the mic is hearing you at all.
-    private var meter: some View {
+    private func meter(_ level: Double) -> some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
                 Capsule().fill(Color.white.opacity(0.1))
                 Capsule().fill(JamControls.accent)
-                    .frame(width: geo.size.width * recorder.level)
+                    .frame(width: geo.size.width * level)
             }
         }
         .frame(height: 6)
         .padding(.horizontal, 24)
-        .animation(.linear(duration: 0.05), value: recorder.level)
+        .animation(.linear(duration: 0.05), value: level)
     }
 
     // MARK: - the take
@@ -340,7 +384,31 @@ struct JamView: View {
                 // loaded — record first, load the models while you listen back.
                 actionButton("record", icon: "mic.fill", needsEngine: false, action: startRecording)
             }
+            micModeRow
         }
+    }
+
+    /// Under the record button rather than beside it: the four actions above are a grid, and a
+    /// fifth control in it would unbalance them for something that only qualifies one of the four.
+    ///
+    /// The toggle is always here once there is a take; the triangle is the conditional part, and it
+    /// is live — pull the buds out mid-jam and it appears, put them back and it goes.
+    private var micModeRow: some View {
+        HStack(spacing: 8) {
+            Spacer()
+            if effectiveMicMode == .add && !route.headphonesConnected {
+                Label("needs headphones", systemImage: "exclamationmark.triangle.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
+            JamControls.RecordModeToggle(mode: $micMode, disabled: busy)
+        }
+    }
+
+    /// Add falls back to replace the moment the take it referred to is gone — the same rule the
+    /// pad drawer follows, for the same reason.
+    private var effectiveMicMode: JamControls.RecordMode {
+        session.current == nil ? .replace : micMode
     }
 
     private func actionButton(_ title: String, icon: String? = nil, needsEngine: Bool = true,
@@ -385,10 +453,18 @@ struct JamView: View {
 
     // MARK: - actions
 
+    /// The record button. Replace is the recorder; add is the pad graph with the mic in it, and
+    /// only add has to care about the room — so only add checks the route.
+    private func startRecording() {
+        guard !pads.recording, !micOverdub else { return }
+        guard effectiveMicMode == .add else { startReplaceRecording(); return }
+        guard route.headphonesConnected else { showBleedWarning = true; return }
+        beginOverdub()
+    }
+
     /// One tap arms the recorder; the next stops it. Everything it needs comes off `settings`, the
     /// same way the three generate actions get theirs — the mic has no configuration of its own.
-    private func startRecording() {
-        guard !pads.recording else { return }
+    private func startReplaceRecording() {
         player.stopAndRelease()
         // The recorder takes the audio session over and deactivates it when it is done, which
         // would strand the pad engine on a dead session. Recording pad output into a take is the
@@ -411,6 +487,65 @@ struct JamView: View {
             player.setURL(url)
             if padsExpanded { pads.start() }
         }
+    }
+
+    /// The mic as another source into the pad graph.
+    ///
+    /// Replace stays on `RecordingManager` because it has nothing to play against: no monitoring,
+    /// so no headphones and no feedback. Add has to hear the take to perform over it, and the tap
+    /// already on the graph's main mixer is what puts the take and the mic in one file — the same
+    /// tap, and the same `startRecording(over:)`, that the pads have been using all along.
+    private func beginOverdub() {
+        guard let take = session.url else { return }
+        recorder.requestPermission { granted in
+            guard granted else {
+                if recorder.permission == .denied { showMicDenied = true }
+                return
+            }
+            player.stopAndRelease()
+            // A restart on `.playAndRecord`: the category has to be right before the engine comes
+            // up, or the input node has no channels to connect.
+            pads.start(mic: true)
+            guard pads.running else { return }
+            micOverdub = true
+            guard settings.countIn else { captureOverdub(over: take); return }
+            overdubCount.run(bpm: settings.countInBPM, beats: settings.countInBeats) {
+                captureOverdub(over: take)
+            }
+        }
+    }
+
+    private func captureOverdub(over take: URL) {
+        // The take ending is the natural end of an overdub: stopping there keeps the result the
+        // same length as the source, so continue and transform behave as they did.
+        let started = pads.startRecording(over: take) {
+            if pads.recording { finishOverdub() }
+        }
+        if !started { endOverdub() }
+    }
+
+    /// Cancel while the count runs — nothing has been captured yet — and stop after it.
+    private func stopOverdub() {
+        if overdubCount.isRunning { endOverdub(); return }
+        finishOverdub()
+    }
+
+    private func finishOverdub() {
+        pads.stopRecording { url in
+            endOverdub()
+            guard let url else { return }
+            session.beginRoot(url, source: .recording)
+            player.setURL(url)
+        }
+    }
+
+    /// Puts the graph back how it was found. The mic comes out and the session goes back to
+    /// playback; the engine only stays up if the drawer is the one holding it open.
+    private func endOverdub() {
+        micOverdub = false
+        overdubCount.cancel()
+        pads.stop()
+        if padsExpanded { pads.start() }
     }
 
     private func load() {
