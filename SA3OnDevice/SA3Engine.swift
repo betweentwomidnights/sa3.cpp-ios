@@ -822,7 +822,9 @@ final class SA3Engine: ObservableObject {
             guard let api = SA3API.training else { return }
             var err = sa3_error_v1()
             err.size = UInt32(MemoryLayout<sa3_error_v1>.size)
-            SA3API.inference?.pointee.error_init(&err)
+            // The training table initializes the shared error type itself, so this path never
+            // reaches for the inference table — training is independently versioned for a reason.
+            api.pointee.error_init(&err)
 
             var cfg = sa3_training_config_v1()
             cfg.size = UInt32(MemoryLayout<sa3_training_config_v1>.size)
