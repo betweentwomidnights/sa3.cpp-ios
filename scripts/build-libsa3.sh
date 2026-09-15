@@ -39,7 +39,11 @@ DEST="$HERE/vendor/lib-$PLATFORM"
 mkdir -p "$DEST"
 # ggml splits into several archives; the app links all of them.
 find "$BUILD" -name '*.a' -exec cp {} "$DEST/" \;
-cp "$SA3_SRC/src/libsa3.h" "$HERE/vendor/include/"
+# V1 is the contract the app builds against; libsa3.h stays for the legacy shims it still
+# declares, and libsa3_v1.h includes nothing else from the tree.
+for h in libsa3.h libsa3_v1.h libsa3_training_v1.h; do
+    cp "$SA3_SRC/src/$h" "$HERE/vendor/include/"
+done
 
 echo "[sa3] staged into vendor/lib-$PLATFORM:"
 ls -1 "$DEST"

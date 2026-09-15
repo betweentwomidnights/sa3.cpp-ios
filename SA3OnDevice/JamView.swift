@@ -4,8 +4,9 @@ import UIKit
 
 /// The jam tab: one current take, and three ways to move it forward.
 ///
-/// create / continue / transform all end in `sa3_generate_ex`. create is text2music; continue is
-/// an inpaint window past the end of the source; transform is audio2audio over the whole thing.
+/// create / continue / transform are the three V1 operations, and all end in one `generate` call on
+/// the V1 table. They differ in what they hand it: nothing, a source plus seconds to add, or a
+/// source to rework. The library decides the frame counts and windows from that.
 /// Everything they need beyond that comes from `SA3Settings`, which is why the three panels look
 /// the same below their first control.
 struct JamView: View {
@@ -557,8 +558,9 @@ struct JamView: View {
     private func create() {
         showCreate = false
         var request = settings.baseRequest(prompt: settings.createPrompt, engine: engine)
-        request.frames = Int32(settings.createFrames)
-        request.durationPadding = Float(settings.durationPadding)
+        request.operation = .generate
+        request.durationSeconds = settings.createDuration
+        request.tailPadding = Float(settings.durationPadding)
         engine.generate(request) { url in
             guard let url else { return }
             session.beginRoot(url, seed: engine.lastSeed, prompt: settings.createPrompt)
@@ -567,17 +569,16 @@ struct JamView: View {
     }
 
     private func continueTake() {
-        guard var audio = session.url.flatMap(SA3AudioFile.planarStereo) else { return }
+        guard let audio = session.url.flatMap(SA3AudioFile.planarStereo) else { return }
         showContinue = false
         player.pause()
-        let seconds = Double(audio.frameCount) / Double(audio.sampleRate)
-        // The window past the end of the source is what gets regenerated; everything before it is
-        // held fixed by the local conditioning, so the take continues rather than restarting.
-        audio.mode = .continuation
-        audio.inpaintStart = Float(seconds)
-        audio.inpaintEnd = Float(seconds + settings.continueAddSeconds)
+        // Just the seconds to add. V1 places the regeneration window past the end of the source,
+        // pulls it back for the splice, and trims the result to source + added — the app used to
+        // compute that window itself and got to stop.
         var request = settings.baseRequest(prompt: settings.continuePrompt, engine: engine)
-        request.initAudio = audio
+        request.operation = .continuation
+        request.durationSeconds = settings.continueAddSeconds
+        request.inputAudio = audio
         engine.generate(request) { url in
             guard let url else { return }
             session.applyDerived(url, source: .continuation, seed: engine.lastSeed,
@@ -590,10 +591,10 @@ struct JamView: View {
         guard var audio = session.url.flatMap(SA3AudioFile.planarStereo) else { return }
         showTransform = false
         player.pause()
-        audio.mode = .transform
         audio.noiseLevel = Float(settings.transformNoise)
         var request = settings.baseRequest(prompt: settings.transformPrompt, engine: engine)
-        request.initAudio = audio
+        request.operation = .transform
+        request.inputAudio = audio
         engine.generate(request) { url in
             guard let url else { return }
             session.applyDerived(url, source: .transformation, seed: engine.lastSeed,
@@ -616,13 +617,12 @@ private struct CreatePanel: View {
                 VStack(alignment: .leading, spacing: 16) {
                     JamControls.PromptField(placeholder: "describe what to make",
                                             text: $settings.createPrompt)
-                    VStack(alignment: .leading, spacing: 2) {
-                        JamControls.SliderRow(label: "length", value: $settings.createDuration,
-                                              range: 5...60, step: 0.5,
-                                              format: { String(format: "%.1fs", $0) })
-                        Text("\(settings.createFrames) latent frames")
-                            .font(.caption2).foregroundStyle(.secondary)
-                    }
+                    // Seconds, and only seconds: V1 owns the conversion to latent frames and the
+                    // even-frame rounding SAME-S needs, so a frame count shown here would be the
+                    // app's guess at the library's arithmetic rather than what it actually used.
+                    JamControls.SliderRow(label: "length", value: $settings.createDuration,
+                                          range: 5...60, step: 0.5,
+                                          format: { String(format: "%.1fs", $0) })
                     JamControls.LoraBlend(settings: settings, engine: engine)
                     JamControls.Seed(settings: settings, engine: engine)
                     JamControls.Advanced(settings: settings, showEnding: true)
