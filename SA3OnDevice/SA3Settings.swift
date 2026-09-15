@@ -18,7 +18,7 @@ final class SA3Settings: ObservableObject {
         didSet { Store.set(variant, "variant") }
     }
     /// The DiT tier. Named `ditEncoding` rather than `encoding` because the text encoder and the
-    /// autoencoder resolve on their own axes — see sa3_config_ex.
+    /// autoencoder resolve on their own axes — see sa3_context_config_v1.
     @Published var ditEncoding: String = Store.string("ditEncoding", "q4_k_m") {
         didSet { Store.set(ditEncoding, "ditEncoding") }
     }
@@ -170,7 +170,6 @@ final class SA3Settings: ObservableObject {
     var device: String? { useCPU ? "cpu" : nil }
     var learningRate: Float { Float(pow(10.0, lrExponent)) }
     var cropFrames: Int { Int((cropSeconds * SA3Engine.framesPerSecond).rounded()) }
-    var createFrames: Int { Int((createDuration * SA3Engine.framesPerSecond).rounded()) }
     /// A pinned seed is clamped non-negative: libsa3 reads anything below zero as "draw a random
     /// one", so a negative value typed into the field would quietly unpin the take.
     var seed: Int64 { useManualSeed ? Int64(max(0, manualSeed)) : -1 }

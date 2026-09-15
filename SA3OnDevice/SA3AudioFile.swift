@@ -74,7 +74,7 @@ enum SA3AudioFile {
     ///
     /// The sample rate is passed through rather than resampled here: libsa3 resamples to 44.1 kHz
     /// itself, and doing it twice would cost quality for nothing.
-    static func planarStereo(_ url: URL) -> SA3Engine.InitAudio? {
+    static func planarStereo(_ url: URL) -> SA3Engine.InputAudio? {
         guard let file = try? AVAudioFile(forReading: url) else { return nil }
         let format = file.processingFormat
         let n = Int(file.length)
@@ -94,8 +94,9 @@ enum SA3AudioFile {
             (base + read).update(from: right, count: read)
         }
 
-        return SA3Engine.InitAudio(mode: .transform, samples: planar, frameCount: read,
-                                   channels: 2, sampleRate: Int(format.sampleRate))
+        // The operation is the request's business now, not the audio's.
+        return SA3Engine.InputAudio(samples: planar, frameCount: read,
+                                    channels: 2, sampleRate: Int(format.sampleRate))
     }
 }
 
