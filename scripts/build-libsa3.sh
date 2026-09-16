@@ -39,11 +39,17 @@ DEST="$HERE/vendor/lib-$PLATFORM"
 mkdir -p "$DEST"
 # ggml splits into several archives; the app links all of them.
 find "$BUILD" -name '*.a' -exec cp {} "$DEST/" \;
-# V1 is the contract the app builds against; libsa3.h stays for the legacy shims it still
-# declares, and libsa3_v1.h includes nothing else from the tree.
-for h in libsa3.h libsa3_v1.h libsa3_training_v1.h; do
+# V1 is the contract the app builds against, and libsa3_v1.h includes nothing else from the tree.
+# libsa3.h is the retired legacy header: copied when the checkout still has it, and its stale copy
+# cleared when it does not, so vendor/include never offers a header the library no longer backs.
+for h in libsa3_v1.h libsa3_training_v1.h; do
     cp "$SA3_SRC/src/$h" "$HERE/vendor/include/"
 done
+if [ -f "$SA3_SRC/src/libsa3.h" ]; then
+    cp "$SA3_SRC/src/libsa3.h" "$HERE/vendor/include/"
+else
+    rm -f "$HERE/vendor/include/libsa3.h"
+fi
 
 echo "[sa3] staged into vendor/lib-$PLATFORM:"
 ls -1 "$DEST"
