@@ -621,7 +621,7 @@ private struct CreatePanel: View {
                     // even-frame rounding SAME-S needs, so a frame count shown here would be the
                     // app's guess at the library's arithmetic rather than what it actually used.
                     JamControls.SliderRow(label: "length", value: $settings.createDuration,
-                                          range: 5...60, step: 0.5,
+                                          range: 1...60, step: 0.5,
                                           format: { String(format: "%.1fs", $0) })
                     JamControls.LoraBlend(settings: settings, engine: engine)
                     JamControls.Seed(settings: settings, engine: engine)
