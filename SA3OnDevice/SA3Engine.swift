@@ -238,10 +238,13 @@ final class SA3Engine: ObservableObject {
     /// eventually cannot allocate: it resets, and the in-flight command buffer comes back as
     /// kIOGPUCommandBufferCallbackErrorInnocentVictim. Invisible on a desktop, fatal on 4 GB.
     ///
-    /// 5 s is short enough that pre-encode keeps up and long enough to avoid rewiring on every
-    /// graph during inference. Set GGML_METAL_RESIDENCY_KEEP_ALIVE_S in the environment to override
-    /// — the 0 in setenv means an existing value wins, so a devicectl launch can still steer it.
-    static let residencyKeepAliveSeconds = "5"
+    /// Inference hits the same wall. With 5 s, a frugal medium take still had the freed DiT's
+    /// buffers wired while SAME-L decoded, and past ~21 s on the iPhone 13 the decode lost a command
+    /// buffer mid-take. 0 releases them as soon as a net is freed: the 26 s take that failed at 5
+    /// completed, at the cost of rewiring per graph. Set GGML_METAL_RESIDENCY_KEEP_ALIVE_S in the
+    /// environment to override — the 0 in setenv means an existing value wins, so a devicectl
+    /// launch or a scheme variable can still steer it.
+    static let residencyKeepAliveSeconds = "0"
 
     init() {
         setenv("GGML_METAL_RESIDENCY_KEEP_ALIVE_S", Self.residencyKeepAliveSeconds, 0)
