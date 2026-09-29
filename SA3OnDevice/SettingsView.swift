@@ -13,6 +13,11 @@ struct SettingsView: View {
 
     @State private var storage: [(String, Int64)] = []
 
+    /// A section to open on, for callers that send someone here for one setting — the jam view's
+    /// error card sends a GPU failure to the performance section.
+    var focus: Focus? = nil
+    enum Focus: Hashable { case performance }
+
     private var busy: Bool { if case .working = engine.status { return true }; return false }
     /// `load` early-returns once a context exists, so the pickers follow the same rule: changing
     /// them while something is loaded would describe a set that is not the one running.
@@ -21,13 +26,23 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                modelSection
-                micSection
-                autoencoderAdapterSection
-                registrySection
-                storageSection
-                logSection
+            ScrollViewReader { proxy in
+                Form {
+                    modelSection
+                    performanceSection.id(Focus.performance)
+                    micSection
+                    autoencoderAdapterSection
+                    registrySection
+                    storageSection
+                    logSection
+                }
+                .onAppear {
+                    guard let focus else { return }
+                    // After the first layout pass, or there is nothing to scroll to yet.
+                    DispatchQueue.main.async {
+                        withAnimation { proxy.scrollTo(focus, anchor: .top) }
+                    }
+                }
             }
             .navigationTitle("settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -59,7 +74,6 @@ struct SettingsView: View {
                 Picker("autoencoder", selection: $settings.aeEncoding) {
                     ForEach(Self.aeEncodings, id: \.self) { Text($0) }
                 }
-                Toggle("cpu backend", isOn: $settings.useCPU)
             }
             // Frozen while a set is resident: these describe what to load, and editing them then
             // would name a configuration that is not the one running.
@@ -81,6 +95,29 @@ struct SettingsView: View {
             Text(statusLabel).font(.caption).foregroundStyle(.secondary)
         }
     }
+
+    // MARK: - performance
+
+    /// What to reach for when the GPU gives up on a take. The chunk is per-request, so it stays
+    /// live with models resident; the backend is chosen at load, so it freezes like the model set.
+    private var performanceSection: some View {
+        Section {
+            Picker("autoencoder chunk", selection: $settings.codecChunkFrames) {
+                ForEach(Self.codecChunks, id: \.self) { frames in
+                    Text(String(format: "%d frames (%.1fs)", frames,
+                                Double(frames) / SA3Engine.framesPerSecond))
+                }
+            }
+            Toggle("cpu backend", isOn: $settings.useCPU)
+                .disabled(!canLoad)
+        } header: {
+            Text("performance")
+        } footer: {
+            Text("medium encodes and decodes in chunks with a quarter overlap. smaller chunks use less GPU memory at once and finish sooner, so try them first if a take fails on the GPU. the cpu backend always works, slowly, and applies at the next load. small models run whole and ignore the chunk.")
+        }
+    }
+
+    private static let codecChunks = [64, 96, 128, 192, 256]
 
     private var statusLabel: String {
         switch engine.status {

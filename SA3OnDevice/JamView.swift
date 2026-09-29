@@ -27,6 +27,9 @@ struct JamView: View {
     @State private var showContinue = false
     @State private var showTransform = false
     @State private var showSettings = false
+    /// Where settings opens: nil from the gear, the performance section from a GPU failure.
+    @State private var settingsFocus: SettingsView.Focus?
+    @State private var showErrorDetails = false
     @State private var showShare = false
     @State private var showMicDenied = false
     @State private var showSaveToPad = false
@@ -83,7 +86,7 @@ struct JamView: View {
                     }
                 }
 
-                if busy { progressCard }
+                if busy { progressCard } else if let failure = engine.generationError { errorCard(failure) }
 
                 JamOverlay(title: "create", isPresented: $showCreate) {
                     CreatePanel(settings: settings, engine: engine, action: create)
@@ -101,10 +104,12 @@ struct JamView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { showSettings = true } label: { Image(systemName: "gearshape") }
+                    Button { settingsFocus = nil; showSettings = true } label: {
+                        Image(systemName: "gearshape")
+                    }
                 }
             }
-            .sheet(isPresented: $showSettings) { SettingsView() }
+            .sheet(isPresented: $showSettings) { SettingsView(focus: settingsFocus) }
             .alert("the mic is off", isPresented: $showMicDenied) {
                 Button("open settings") {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -443,6 +448,57 @@ struct JamView: View {
         .frame(maxWidth: 320)
         .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).stroke(JamControls.accent.opacity(0.5)))
+        .frame(maxHeight: .infinity, alignment: .top)
+        .padding(.top, 12)
+    }
+
+    /// A failed generate used to leave nothing here: the progress card went away and no take
+    /// arrived. The engine has already rebuilt its context by the time this shows, so the next
+    /// try runs on a fresh backend rather than failing instantly.
+    ///
+    /// A GPU failure says what happened in plain words and points at the settings that help; the
+    /// library's own message, written for anyone embedding it, stays one tap away for debugging.
+    private func errorCard(_ failure: SA3Engine.GenerationFailure) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if failure.isBackend {
+                Text("the GPU gave up on that take").font(.footnote.weight(.semibold))
+                Text("usually it ran out of memory. the model has been reloaded — try a shorter length or smaller autoencoder chunks.")
+                    .font(.caption).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("generation failed").font(.footnote.weight(.semibold))
+            }
+            if showErrorDetails || !failure.isBackend {
+                ScrollView {
+                    Text(failure.message).font(.caption2.monospaced()).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                .frame(maxHeight: 120)
+            }
+            HStack(spacing: 16) {
+                if failure.isBackend {
+                    Button("performance settings") {
+                        engine.generationError = nil
+                        settingsFocus = .performance
+                        showSettings = true
+                    }
+                    Button(showErrorDetails ? "hide details" : "details") {
+                        showErrorDetails.toggle()
+                    }
+                }
+                Spacer()
+                Button("dismiss") {
+                    engine.generationError = nil
+                    showErrorDetails = false
+                }
+            }
+            .font(.footnote.weight(.semibold))
+        }
+        .padding(14)
+        .frame(maxWidth: 320, alignment: .leading)
+        .background(Color(white: 0.11), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.red.opacity(0.5)))
         .frame(maxHeight: .infinity, alignment: .top)
         .padding(.top, 12)
     }

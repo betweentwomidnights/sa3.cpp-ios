@@ -117,6 +117,7 @@ enum SA3API {
     /// out of every call site.
     static let ok = sa3_status_v1(SA3_STATUS_OK_V1)
     static let cancelled = sa3_status_v1(SA3_STATUS_CANCELLED_V1)
+    static let modelError = sa3_status_v1(SA3_STATUS_MODEL_ERROR_V1)
 
     /// `char[N]` arrives in Swift as a fixed-size tuple; this is the only way back to a String.
     static func text<T>(_ buffer: T) -> String {
@@ -168,6 +169,22 @@ final class SA3Engine: ObservableObject {
     /// Whether a context exists. `status == .ready` is the same thing today, but generate is gated
     /// on the context and the two drift apart while a call is in flight.
     var isLoaded: Bool { ctx != nil }
+
+    /// Why the last generate failed, for the jam view. `status` cannot carry it: the recovery
+    /// below reloads the context, and the reload moves status on to loading and then ready.
+    @Published var generationError: GenerationFailure?
+
+    struct GenerationFailure: Equatable {
+        let message: String
+        /// The GPU gave up mid-take, as opposed to a request or model problem. V1 reports both as
+        /// a model error, so this reads libsa3's graph_compute_checked wording ("backend '…'
+        /// failed"): if that wording changes, these fall back to the generic card, not a wrong one.
+        var isBackend: Bool { message.contains("backend '") && message.contains("' failed") }
+    }
+
+    /// The arguments of the last load, so a context can be rebuilt exactly as it was.
+    private var lastLoad: (variant: String, encoding: String, textEncoding: String,
+                           aeEncoding: String, device: String?)?
 
     struct TrainStep: Equatable {
         var step: Int
@@ -517,6 +534,7 @@ final class SA3Engine: ObservableObject {
             append("sa3_get_api(1) returned null — the linked libsa3 predates the V1 contract")
             return
         }
+        lastLoad = (variant, encoding, textEncoding, aeEncoding, device)
         status = .loading
         append("loading \(variant) (\(encoding), t5 \(textEncoding), ae \(aeEncoding))")
         let dir = Self.modelsDir.path
@@ -585,6 +603,18 @@ final class SA3Engine: ObservableObject {
         queue.async { SA3API.inference?.pointee.context_destroy(c) }
     }
 
+    /// A GPU fault latches the backend: every later call fails instantly without computing
+    /// anything, and on a 4 GB phone medium can fault mid-decode. The only recovery is a new
+    /// context, so rebuild it the way it was loaded instead of leaving the jam view dead until a
+    /// relaunch. The queue is serial, so the destroy lands before the create.
+    private func recreateContext() {
+        guard let last = lastLoad else { return }
+        append("recreating the context after a backend failure")
+        unload()
+        load(variant: last.variant, encoding: last.encoding, textEncoding: last.textEncoding,
+             aeEncoding: last.aeEncoding, device: last.device)
+    }
+
     // MARK: - generate
 
     /// One inference call. A struct rather than a dozen arguments because create, continue and
@@ -608,6 +638,8 @@ final class SA3Engine: ObservableObject {
         /// Schedule headroom in seconds, or nil to keep V1's initialized 6 s (no ending).
         var tailPadding: Float?
         var keepModels: Bool = true
+        /// SAME-L encode/decode chunk in latent frames; the overlap is a quarter of it.
+        var codecChunkFrames: Int32 = 128
         var loras: [(AdapterEntry, Float)] = []
         var inputAudio: InputAudio?
     }
@@ -651,6 +683,7 @@ final class SA3Engine: ObservableObject {
         guard let c = ctx, SA3API.inference != nil else { completion(nil); return }
         status = .working("generating")
         progress = 0
+        generationError = nil
         let live = CallbackBox(self)
         activeBox = live
         let box = Unmanaged.passRetained(live).toOpaque()
@@ -696,8 +729,8 @@ final class SA3Engine: ObservableObject {
                 r.generation_tail_padding_seconds = padding
                 r.continuation_tail_padding_seconds = padding
             }
-            r.decode_chunk_size = 128
-            r.decode_overlap = 32
+            r.decode_chunk_size = req.codecChunkFrames
+            r.decode_overlap = req.codecChunkFrames / 4
 
             r.callback_user = box
             r.on_progress = { user, progress in
@@ -750,8 +783,8 @@ final class SA3Engine: ObservableObject {
                     r.transform_noise_level = src.noiseLevel
                     // The source crosses SAME twice per iteration, so chunk the encode too — the
                     // monolithic SAME-L encode is what runs the phone out of memory.
-                    r.encode_chunk_size = 128
-                    r.encode_overlap = 32
+                    r.encode_chunk_size = req.codecChunkFrames
+                    r.encode_overlap = req.codecChunkFrames / 4
                     return api.pointee.generate(c, &r, &out, &err)
                 }
             }
@@ -781,6 +814,11 @@ final class SA3Engine: ObservableObject {
                     self.append("cancelled")
                 } else {
                     self.append("generate failed: \(message)")
+                    self.generationError = GenerationFailure(
+                        message: message.isEmpty ? "generation failed" : message)
+                    // A backend failure comes back as a model error, and the context is dead
+                    // after it. Other model errors lose only a reload by taking the same path.
+                    if status == SA3API.modelError { self.recreateContext() }
                 }
                 completion(url)
             }

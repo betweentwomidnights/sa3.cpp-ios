@@ -37,6 +37,12 @@ final class SA3Settings: ObservableObject {
     @Published var keepModels: Bool = Store.bool("keepModels", true) {
         didSet { Store.set(keepModels, "keepModels") }
     }
+    /// Latent frames per SAME-L encode/decode chunk; the overlap is a quarter of it. A smaller
+    /// chunk lowers the autoencoder's peak and shortens each GPU submission, which is what a
+    /// medium take on a 4 GB phone runs out of. SAME-S ignores it and runs whole.
+    @Published var codecChunkFrames: Int = Store.int("codecChunkFrames", 128) {
+        didSet { Store.set(codecChunkFrames, "codecChunkFrames") }
+    }
 
     // MARK: - adapters
 
@@ -210,6 +216,7 @@ final class SA3Settings: ObservableObject {
         r.cfgScale = Float(cfgScale)
         r.distShift = distShift
         r.keepModels = keepModels
+        r.codecChunkFrames = Int32(codecChunkFrames)
         r.loras = activeLoras(engine)
         return r
     }
